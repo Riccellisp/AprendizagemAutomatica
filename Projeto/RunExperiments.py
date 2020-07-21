@@ -14,6 +14,8 @@ import classifiersEval
 import Allclassifiers
 import gridSearchAlgorithms
 import adaline
+import knn
+import bayes
 import os.path
 import pandas as pd
 import numpy as np
@@ -24,7 +26,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn import metrics
 
 
-caminhoSalvar = '/home/riccelli/AprendizagemAutomatica/Projeto/CIC2017PreProc/'
+caminhoSalvar = './CIC2017PreProc/'
 nome = 'CIC2017PreProcBinaryTiny'
 extensao = '.csv'
 if not os.path.isfile(caminhoSalvar+nome+extensao):
@@ -54,7 +56,8 @@ else:
     print(skf) 
     val_perc = 0.5
     indexesPerFold = []
-    f1Metrics = []
+    #f1Metrics = []
+    f1Metrics = {"ADALINE":[], "KNN":[], "BAYES": []}
     for train_index, test_index in skf.split(X, Y):
         X_train, X_test = X[train_index,:], X[test_index,:]
         y_train, y_test = Y[train_index], Y[test_index]
@@ -67,15 +70,30 @@ else:
         test = pd.DataFrame(np.column_stack((X_test,y_test)), columns = colunas)
         TrainDivided = pd.DataFrame(np.column_stack((X_trainDivided,y_trainDivided)), columns = colunas)
         validation = pd.DataFrame(np.column_stack((X_val,y_val)), columns = colunas)
-        parametros = {'epochs':[100,200 ,300],'alpha':[0.001, 0.01, 0.1]}
+        parametros = {'epochs':[10, 20, 30],'alpha':[0.001, 0.01, 0.1]}
         
+        # ADALINE
         resultGrid = gridSearchAlgorithms.gridsearchAdaline(parametros, TrainDivided, validation)        
         
         attrs = train.columns.tolist()[:-1]        
         pesos_adaline = adaline.adaline_fit(train,attrs,resultGrid['epochs'],resultGrid['alpha'])
         yTeste, yPred =  adaline.adaline_predict(pesos_adaline,test)
-        f1 = metrics.f1_score(yTeste, yPred,average='weighted')
+        f1Metrics["ADALINE"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
 
-        f1Metrics.append(f1)
+        # KNN
+        # TODO: IMPLEMENTAR GRIDSEARCH (?)
+        yTeste, yPred = knn.knn_predict(train, test, 3)
+        f1Metrics["KNN"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+
+        # NAIVE BAYES
+        # TODO: IMPLEMENTAR GRIDSEARCH (?)
+        ids_classes = pd.unique(train['label']).tolist()
+        attrs = train.columns.tolist()[:-1]
+
+        p, pp = bayes.naive_bayes_fit(train, ids_classes, attrs)
+        yTeste, yPred = bayes.naive_bayes_predict(test, ids_classes, p, pp)
+        f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+
+    print(f1Metrics)
         
         
