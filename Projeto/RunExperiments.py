@@ -12,6 +12,7 @@ import PreProcessingFinal
 import ClusterCentroids
 import classifiersEval
 import Allclassifiers
+import gridSearchAlgorithms
 import adaline
 import os.path
 import pandas as pd
@@ -57,23 +58,24 @@ else:
     for train_index, test_index in skf.split(X, Y):
         X_train, X_test = X[train_index,:], X[test_index,:]
         y_train, y_test = Y[train_index], Y[test_index]
-        #X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
+        X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
-        #X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
+        X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
         #indexesPerFold.append(train_index)
         
         train = pd.DataFrame(np.column_stack((X_train,y_train)), columns = colunas)
         test = pd.DataFrame(np.column_stack((X_test,y_test)), columns = colunas)
-        attrs = train.columns.tolist()[:-1]
-        pesos_adaline = adaline.adaline_fit(train,attrs,10,0.01)
+        TrainDivided = pd.DataFrame(np.column_stack((X_trainDivided,y_trainDivided)), columns = colunas)
+        validation = pd.DataFrame(np.column_stack((X_val,y_val)), columns = colunas)
+        parametros = {'epochs':[100,200 ,300],'alpha':[0.001, 0.01, 0.1]}
+        
+        resultGrid = gridSearchAlgorithms.gridsearchAdaline(parametros, TrainDivided, validation)        
+        
+        attrs = train.columns.tolist()[:-1]        
+        pesos_adaline = adaline.adaline_fit(train,attrs,resultGrid['epochs'],resultGrid['alpha'])
         yTeste, yPred =  adaline.adaline_predict(pesos_adaline,test)
         f1 = metrics.f1_score(yTeste, yPred,average='weighted')
-        #clf = AdaBoostClassifier(n_estimators=5,learning_rate=1)
-        #clf.fit(X_train,y_train)
-        #pred = clf.predict(X_test)
-        #f1 = metrics.f1_score(y_test, pred,average='weighted')
+
         f1Metrics.append(f1)
-        #print(f1)
-        #yprev = Allclassifiers.adaline(X_train.tolist(),y_train.tolist(), X_test.tolist(), y_test.tolist(), 10, 0.1) 
         
         

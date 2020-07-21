@@ -9,6 +9,7 @@ Created on Mon Jul 20 14:36:03 2020
 import pandas as pd
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import ParameterGrid
 
 def getIndexes(dfObj, value):
     
@@ -98,4 +99,3 @@ def salvarDataset(df,caminho,nome):
 def binarizarLabel(df):
     df[df['label'] != 0] = 1
     return df
-

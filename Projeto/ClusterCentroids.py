@@ -32,14 +32,14 @@ def ClusterCentroidsUndersampling(Xtrain,Ytrain,colunas):
     df = pd.concat([Xtrain,Ytrain],axis=1)
     classesCounts = df['label'].value_counts()
     #normal
-    df0 = df[df['label'] == 0]
+    df0 = df[df['label'] == 0].values
     #ataques
-    df1 = df[df['label'] == 1]
+    df1 = df[df['label'] == 1].values
     f0=(1-(classesCounts[1]/len(df0)))*100
     #X =df0.iloc[:,0:65] 
-    df0Under= pd.DataFrame(CCMUT(df0.values,f0))
-    clusterCentroidDatasetUnder = pd.concat([df0Under,df1])
-    return np.array(clusterCentroidDatasetUnder.iloc[0:97,:]), np.array(clusterCentroidDatasetUnder.iloc[:,-1])
+    df0Under= pd.DataFrame(CCMUT(df0,f0))
+    clusterCentroidDatasetUnder = np.vstack((df0Under,df1))
+    return clusterCentroidDatasetUnder[:,0:97], clusterCentroidDatasetUnder[:,-1]
 
 def salvarDataset(df,caminho,nome):
     df.to_csv (caminho+nome+'.csv', index = None, header=True)
