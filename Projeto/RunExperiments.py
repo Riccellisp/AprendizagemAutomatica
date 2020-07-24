@@ -54,9 +54,12 @@ else:
     skf = StratifiedKFold(n_splits=10)
     #skf.get_n_splits(X, Y)
     print(skf) 
-    val_perc = 0.5
+    val_perc = 0.2
     indexesPerFold = []
     #f1Metrics = []
+    accMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    precisionMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    recallMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
     f1Metrics = {"ADALINE":[], "KNN":[], "BAYES": []}
     for train_index, test_index in skf.split(X, Y):
         X_train, X_test = X[train_index,:], X[test_index,:]
@@ -64,7 +67,6 @@ else:
         X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
         X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
-        #indexesPerFold.append(train_index)
         
         train = pd.DataFrame(np.column_stack((X_train,y_train)), columns = colunas)
         test = pd.DataFrame(np.column_stack((X_test,y_test)), columns = colunas)
@@ -78,21 +80,33 @@ else:
         attrs = train.columns.tolist()[:-1]        
         pesos_adaline = adaline.adaline_fit(train,attrs,resultGrid['epochs'],resultGrid['alpha'])
         yTeste, yPred =  adaline.adaline_predict(pesos_adaline,test)
+        
+        accMetrics["ADALINE"].append(metrics.accuracy_score(yTeste, yPred))
+        precisionMetrics["ADALINE"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
+        recallMetrics["ADALINE"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["ADALINE"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
-
+        indexesPerFold.append([train_index,test_index,])
         # KNN
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
-        yTeste, yPred = knn.knn_predict(train, test, 3)
-        f1Metrics["KNN"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        #yTeste, yPred = knn.knn_predict(train, test, 3)
+        
+        #accMetrics["KNN"].append(metrics.accuracy_score(yTeste, yPred))
+        #precisionMetrics["KNN"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
+        #recallMetrics["KNN"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
+        ##f1Metrics["KNN"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
 
         # NAIVE BAYES
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
-        ids_classes = pd.unique(train['label']).tolist()
-        attrs = train.columns.tolist()[:-1]
+        ##ids_classes = pd.unique(train['label']).tolist()
+        #attrs = train.columns.tolist()[:-1]
 
-        p, pp = bayes.naive_bayes_fit(train, ids_classes, attrs)
-        yTeste, yPred = bayes.naive_bayes_predict(test, ids_classes, p, pp)
-        f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        #p, pp = bayes.naive_bayes_fit(train, ids_classes, attrs)
+        #yTeste, yPred = bayes.naive_bayes_predict(test, ids_classes, p, pp)
+        
+        #accMetrics["BAYES"].append(metrics.accuracy_score(yTeste, yPred))
+        #precisionMetrics["BAYES"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
+        #recallMetrics["BAYES"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
+        #f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
 
     print(f1Metrics)
         
