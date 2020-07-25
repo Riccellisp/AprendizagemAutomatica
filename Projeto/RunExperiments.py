@@ -24,10 +24,12 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn import metrics
+import timeit
+
 
 
 caminhoSalvar = './CIC2017PreProc/'
-nome = 'CIC2017PreProcBinaryTiny'
+nome = 'CIC2017PreProcBinary'
 extensao = '.csv'
 if not os.path.isfile(caminhoSalvar+nome+extensao):
     caminho = '/home/riccelli/MachineLearningCVE/'
@@ -61,9 +63,13 @@ else:
     precisionMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
     recallMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
     f1Metrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    timeMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    results = {"ADALINE":[], "KNN":[], "BAYES": []}
+    fold = 0
     for train_index, test_index in skf.split(X, Y):
         X_train, X_test = X[train_index,:], X[test_index,:]
         y_train, y_test = Y[train_index], Y[test_index]
+        start = timeit.default_timer()
         X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
         X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
@@ -72,7 +78,7 @@ else:
         test = pd.DataFrame(np.column_stack((X_test,y_test)), columns = colunas)
         TrainDivided = pd.DataFrame(np.column_stack((X_trainDivided,y_trainDivided)), columns = colunas)
         validation = pd.DataFrame(np.column_stack((X_val,y_val)), columns = colunas)
-        parametros = {'epochs':[10, 20, 30],'alpha':[0.001, 0.01, 0.1]}
+        parametros = {'epochs':[30, 40, 50],'alpha':[0.001, 0.01, 0.1]}
         
         # ADALINE
         resultGrid = gridSearchAlgorithms.gridsearchAdaline(parametros, TrainDivided, validation)        
@@ -80,11 +86,14 @@ else:
         attrs = train.columns.tolist()[:-1]        
         pesos_adaline = adaline.adaline_fit(train,attrs,resultGrid['epochs'],resultGrid['alpha'])
         yTeste, yPred =  adaline.adaline_predict(pesos_adaline,test)
+        end = timeit.default_timer()
+        print(end - start)
         
         accMetrics["ADALINE"].append(metrics.accuracy_score(yTeste, yPred))
         precisionMetrics["ADALINE"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
         recallMetrics["ADALINE"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["ADALINE"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        timeMetrics["ADALINE"].append(end-start)
         indexesPerFold.append([train_index,test_index,])
         # KNN
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
@@ -107,7 +116,9 @@ else:
         #precisionMetrics["BAYES"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
         #recallMetrics["BAYES"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         #f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
-
+        print(fold)
+        fold = fold + 1
+    results["ADALINE"] = [np.mean(accMetrics["ADALINE"]),np.mean(precisionMetrics["ADALINE"]),np.mean(recallMetrics["ADALINE"]),np.mean(f1Metrics["ADALINE"]),np.mean(timeMetrics["ADALINE"])]    
     print(f1Metrics)
         
         
