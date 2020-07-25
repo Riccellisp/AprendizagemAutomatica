@@ -16,7 +16,6 @@ import gridSearchAlgorithms
 import adaline
 import knn
 import bayes
-import nearest_centroid
 import os.path
 import pandas as pd
 import numpy as np
@@ -30,10 +29,8 @@ import timeit
 
 
 caminhoSalvar = './CIC2017PreProc/'
-nome = 'CIC2017PreProcBinaryTiny'
+nome = 'CIC2017PreProcBinary'
 extensao = '.csv'
-path = caminhoSalvar +nome + extensao
-print(path)
 if not os.path.isfile(caminhoSalvar+nome+extensao):
     caminho = '/home/riccelli/MachineLearningCVE/'
     low_memoryBoolean = False
@@ -62,12 +59,12 @@ else:
     val_perc = 0.2
     indexesPerFold = []
     #f1Metrics = []
-    accMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": []}
-    precisionMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": []}
-    recallMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": []}
-    f1Metrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": []}
-    timeMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": []}
-    results = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": []}
+    accMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    precisionMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    recallMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    f1Metrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    timeMetrics = {"ADALINE":[], "KNN":[], "BAYES": []}
+    results = {"ADALINE":[], "KNN":[], "BAYES": []}
     fold = 0
     for train_index, test_index in skf.split(X, Y):
         X_train, X_test = X[train_index,:], X[test_index,:]
@@ -98,18 +95,6 @@ else:
         f1Metrics["ADALINE"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
         timeMetrics["ADALINE"].append(end-start)
         indexesPerFold.append([train_index,test_index,])
-
-        # NEAREST CENTROID
-        
-        attrs = train.columns.tolist()[:-1]
-        centroids, classes = nearest_centroid.nearest_centroid_fit(train, test)
-        yTeste, yPred =  nearest_centroid.nearest_centroid_predict(centroids, classes,test)
-        
-        accMetrics["NC"].append(metrics.accuracy_score(yTeste, yPred))
-        precisionMetrics["NC"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
-        recallMetrics["NC"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
-        f1Metrics["NC"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
-
         # KNN
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
         #yTeste, yPred = knn.knn_predict(train, test, 3)
@@ -133,8 +118,7 @@ else:
         #f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
         print(fold)
         fold = fold + 1
-    results["ADALINE"] = [np.mean(accMetrics["ADALINE"]),np.mean(precisionMetrics["ADALINE"]),np.mean(recallMetrics["ADALINE"]),np.mean(f1Metrics["ADALINE"]),np.mean(timeMetrics["ADALINE"])]
-    results["NC"] = [np.mean(accMetrics["NC"]),np.mean(precisionMetrics["NC"]),np.mean(recallMetrics["NC"]),np.mean(f1Metrics["NC"]),np.mean(timeMetrics["NC"])]      
-    print(results)
+    results["ADALINE"] = [np.mean(accMetrics["ADALINE"]),np.mean(precisionMetrics["ADALINE"]),np.mean(recallMetrics["ADALINE"]),np.mean(f1Metrics["ADALINE"]),np.mean(timeMetrics["ADALINE"])]    
+    print(f1Metrics)
         
         
