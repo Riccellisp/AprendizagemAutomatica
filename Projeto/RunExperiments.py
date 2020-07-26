@@ -26,11 +26,12 @@ from sklearn import preprocessing
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn import metrics
 import timeit
+from sklearn.neighbors.nearest_centroid import NearestCentroid
 
 
 
 caminhoSalvar = './CIC2017PreProc/'
-nome = 'CIC2017PreProcBinaryTiny'
+nome = 'CIC2017PreProcBinary'
 extensao = '.csv'
 path = caminhoSalvar +nome + extensao
 print(path)
@@ -72,69 +73,92 @@ else:
     for train_index, test_index in skf.split(X, Y):
         X_train, X_test = X[train_index,:], X[test_index,:]
         y_train, y_test = Y[train_index], Y[test_index]
-        start = timeit.default_timer()
+        
         X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
         X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
         
         train = pd.DataFrame(np.column_stack((X_train,y_train)), columns = colunas)
         test = pd.DataFrame(np.column_stack((X_test,y_test)), columns = colunas)
+        
         TrainDivided = pd.DataFrame(np.column_stack((X_trainDivided,y_trainDivided)), columns = colunas)
         validation = pd.DataFrame(np.column_stack((X_val,y_val)), columns = colunas)
+        
+        # ADALINE GridSearch
         parametros = {'epochs':[30, 40, 50],'alpha':[0.001, 0.01, 0.1]}
-        
-        # ADALINE
         resultGrid = gridSearchAlgorithms.gridsearchAdaline(parametros, TrainDivided, validation)        
-        
-        attrs = train.columns.tolist()[:-1]        
+        #Utilizando os parametros eencontrados no conjunto de validação
+        attrs = train.columns.tolist()[:-1]      
+        start = timeit.default_timer()
         pesos_adaline = adaline.adaline_fit(train,attrs,resultGrid['epochs'],resultGrid['alpha'])
         yTeste, yPred =  adaline.adaline_predict(pesos_adaline,test)
         end = timeit.default_timer()
         print(end - start)
         
+        # Salvando metricas
         accMetrics["ADALINE"].append(metrics.accuracy_score(yTeste, yPred))
         precisionMetrics["ADALINE"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
         recallMetrics["ADALINE"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["ADALINE"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
         timeMetrics["ADALINE"].append(end-start)
-        indexesPerFold.append([train_index,test_index,])
-
-        # NEAREST CENTROID
         
+        
+        # NEAREST CENTROID
         attrs = train.columns.tolist()[:-1]
+        start = timeit.default_timer()
         centroids, classes = nearest_centroid.nearest_centroid_fit(train, test)
         yTeste, yPred =  nearest_centroid.nearest_centroid_predict(centroids, classes,test)
+        end = timeit.default_timer()
+        print(end - start)
         
         accMetrics["NC"].append(metrics.accuracy_score(yTeste, yPred))
         precisionMetrics["NC"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
         recallMetrics["NC"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["NC"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
-
+        timeMetrics["NC"].append(end-start)
+        
         # KNN
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
-        #yTeste, yPred = knn.knn_predict(train, test, 3)
+        parametros = {'k':[3, 5, 7],'distance':['euclidean','manhatthan']}
+        resultGrid = gridSearchAlgorithms.gridsearchKnn(parametros, TrainDivided, validation)
         
-        #accMetrics["KNN"].append(metrics.accuracy_score(yTeste, yPred))
-        #precisionMetrics["KNN"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
-        #recallMetrics["KNN"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
-        ##f1Metrics["KNN"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
-
+        start = timeit.default_timer()
+        yTeste, yPred = knn.knn_predict(train, test, resultGrid)
+        end = timeit.default_timer()
+        print(end - start)
+        
+        accMetrics["KNN"].append(metrics.accuracy_score(yTeste, yPred))
+        precisionMetrics["KNN"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
+        recallMetrics["KNN"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
+        f1Metrics["KNN"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        timeMetrics["KNN"].append(end-start)
+        
+        
         # NAIVE BAYES
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
-        ##ids_classes = pd.unique(train['label']).tolist()
-        #attrs = train.columns.tolist()[:-1]
-
-        #p, pp = bayes.naive_bayes_fit(train, ids_classes, attrs)
-        #yTeste, yPred = bayes.naive_bayes_predict(test, ids_classes, p, pp)
+        ids_classes = pd.unique(train['label']).tolist()
+        attrs = train.columns.tolist()[:-1]
+        start = timeit.default_timer()
+        p, pp = bayes.naive_bayes_fit(train, ids_classes, attrs)
+        yTeste, yPred = bayes.naive_bayes_predict(test, ids_classes, p, pp)
+        end = timeit.default_timer()
+        print(end - start)
         
-        #accMetrics["BAYES"].append(metrics.accuracy_score(yTeste, yPred))
-        #precisionMetrics["BAYES"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
-        #recallMetrics["BAYES"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
-        #f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        accMetrics["BAYES"].append(metrics.accuracy_score(yTeste, yPred))
+        precisionMetrics["BAYES"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
+        recallMetrics["BAYES"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
+        f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        timeMetrics["BAYES"].append(end-start)
+        
         print(fold)
         fold = fold + 1
+        
     results["ADALINE"] = [np.mean(accMetrics["ADALINE"]),np.mean(precisionMetrics["ADALINE"]),np.mean(recallMetrics["ADALINE"]),np.mean(f1Metrics["ADALINE"]),np.mean(timeMetrics["ADALINE"])]
     results["NC"] = [np.mean(accMetrics["NC"]),np.mean(precisionMetrics["NC"]),np.mean(recallMetrics["NC"]),np.mean(f1Metrics["NC"]),np.mean(timeMetrics["NC"])]      
+    results["BAYES"] = [np.mean(accMetrics["BAYES"]),np.mean(precisionMetrics["BAYES"]),np.mean(recallMetrics["BAYES"]),np.mean(f1Metrics["BAYES"]),np.mean(timeMetrics["BAYES"])]      
+    results["KNN"] = [np.mean(accMetrics["KNN"]),np.mean(precisionMetrics["KNN"]),np.mean(recallMetrics["KNN"]),np.mean(f1Metrics["KNN"]),np.mean(timeMetrics["KNN"])]      
+
     print(results)
+    
         
         

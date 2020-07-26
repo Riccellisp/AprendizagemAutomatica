@@ -8,16 +8,21 @@ import numpy as np
 import math
 
 # Euclidean Distance
-distance = lambda a, b: np.sqrt(sum((a - b)**2))
+#distance = lambda a, b: np.sqrt(sum((a - b)**2))
 
 # Manhattan Distance:
 #distance = lambda a, b: sum(np.abs(a - b))
 
 # Minkowski Distance:
-#import math
 #distance = lambda a, b, p: math.pow(sum(np.abs(np.array(a))), (1.0/p))
 
-def __knn_model(df_train, X, k):
+def __knn_model(df_train, X, k,distanceMetric):
+    
+  if distanceMetric == 'euclidean':
+      distance = lambda a, b: np.sqrt(sum((a - b)**2))
+  elif distanceMetric == 'manhatthan':
+      distance = lambda a, b: sum(np.abs(a - b))
+
   aux, votes = [], {}
   values = df_train.values.tolist()
 
@@ -39,12 +44,12 @@ def __knn_model(df_train, X, k):
 
   return check_votes[0][0]
 
-def knn_predict(df_train, df_test, k):
+def knn_predict(df_train, df_test, params):
   y, yprevs = [], []
   # Pergunta ao classificador as classes das amostras de teste
   for entry in df_test.values.tolist():
     attrs, y_obs = entry[:-1], entry[-1]
-    y_prev = __knn_model(df_train, attrs, k)
+    y_prev = __knn_model(df_train, attrs, params['k'], params['distance'])
     y.append(y_obs)
     yprevs.append(y_prev)
   return y, yprevs

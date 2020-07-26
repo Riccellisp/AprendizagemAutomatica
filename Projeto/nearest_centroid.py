@@ -53,7 +53,7 @@ def nearest_centroid_predict(centroids, classes,test):
             if dist < min_dist:
                 min_dist = dist
                 obs_class = class_idx
-                class_idx +=1
+            class_idx +=1
         y_prev = classes[obs_class]
 
         y.append(y_obs)
