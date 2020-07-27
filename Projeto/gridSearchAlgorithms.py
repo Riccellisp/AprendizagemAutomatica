@@ -9,6 +9,10 @@ from sklearn.model_selection import ParameterGrid
 from sklearn import metrics
 import adaline
 import knn
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import AdaBoostClassifier
+
 
 def gridsearchAdaline(parametros,trainDivided,validation):
     f1Metric = []
@@ -29,6 +33,45 @@ def gridsearchKnn(parametros,trainDivided,validation):
     for params in ParameterGrid(parametros):        
         yTeste, yPred =  knn.knn_predict(trainDivided,validation,params)
         f1 = metrics.f1_score(yTeste, yPred,average='weighted')
+        print(f1)
+        f1Metric.append(f1)
+        par.append(params)
+    return par[f1Metric.index(max(f1Metric))]
+
+def gridsearchRF(parametros,xTrain,yTrain,Xval,yVal):
+    f1Metric = []
+    par = []
+    for params in ParameterGrid(parametros):
+        rf = RandomForestClassifier(n_estimators=params['n_estimators'], criterion=params['criterion'])
+        rf.fit(xTrain,yTrain)
+        pred = rf.predict(Xval)
+        f1 = metrics.f1_score(yVal, pred,average='weighted')
+        print(f1)
+        f1Metric.append(f1)
+        par.append(params)
+    return par[f1Metric.index(max(f1Metric))]
+
+def gridsearchSVM(parametros,xTrain,yTrain,Xval,yVal):
+    f1Metric = []
+    par = []
+    for params in ParameterGrid(parametros):
+        svm = SVC(kernel=params['kernel'], C=params['C'])
+        svm.fit(xTrain, yTrain)
+        y_pred = svm.predict(Xval)
+        f1 = metrics.f1_score(yVal, y_pred,average='weighted')
+        print(f1)
+        f1Metric.append(f1)
+        par.append(params)
+    return par[f1Metric.index(max(f1Metric))]
+
+def gridsearchAdaBoost(parametros,xTrain,yTrain,Xval,yVal):
+    f1Metric = []
+    par = []
+    for params in ParameterGrid(parametros):
+        clf = AdaBoostClassifier(n_estimators=params['n_estimators'],learning_rate=params['learning_rate'])
+        clf.fit(xTrain,yTrain)
+        pred = clf.predict(Xval)
+        f1 = metrics.f1_score(yVal, pred,average='weighted')
         print(f1)
         f1Metric.append(f1)
         par.append(params)
