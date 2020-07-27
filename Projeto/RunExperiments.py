@@ -5,8 +5,6 @@ Created on Mon Jul 20 14:42:24 2020
 
 @author: riccelli
 """
-
-
 import common
 import PreProcessingFinal
 import ClusterCentroids
@@ -28,7 +26,6 @@ from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
-
 caminhoSalvar = './CIC2017PreProc/'
 nome = 'CIC2017PreProcBinaryTiny'
 extensao = '.csv'
@@ -48,18 +45,13 @@ if not os.path.isfile(caminhoSalvar+nome+extensao):
     
 else:
     df = pd.read_csv(caminhoSalvar+nome+extensao,low_memory=False)
-    min_max_scaler = preprocessing.MinMaxScaler()
-    np_scaled = min_max_scaler.fit_transform(df)
     colunas = df.columns
-    df = pd.DataFrame(np_scaled, columns = colunas)
-    #df = df.sample(frac = 0.2)
     X = np.array(df.iloc[:,0:97])
     Y = np.array(df.iloc[:,-1])
     #del df
-    skf = StratifiedKFold(n_splits=10)
-    #skf.get_n_splits(X, Y)
+    skf = StratifiedKFold(n_splits=5)
     print(skf) 
-    val_perc = 0.2
+    val_perc = 0.1
     indexesPerFold = []
     accMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": [], "RF": [], "SVM": [], "ADA": []}
     precisionMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": [], "RF": [], "SVM": [], "ADA": []}
@@ -72,6 +64,10 @@ else:
         X_train, X_test = X[train_index,:], X[test_index,:]
         y_train, y_test = Y[train_index], Y[test_index]
         
+        min_max_scaler = preprocessing.MinMaxScaler()
+        X_train = min_max_scaler.fit_transform(X_train)
+        X_test = min_max_scaler.transform(X_test)
+         
         X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
         X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
