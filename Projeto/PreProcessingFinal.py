@@ -7,7 +7,7 @@ from sklearn.feature_extraction import FeatureHasher
 from category_encoders.hashing import HashingEncoder
 from os import listdir
 from sklearn.preprocessing import OneHotEncoder
-
+from imblearn.under_sampling import RandomUnderSampler
 
 def getIndexes(dfObj, value):
     
@@ -135,4 +135,38 @@ def salvarDataset(df,caminho,nome,extensao):
 def binarizarLabel(df):
     df[df['label'] != 0] = 1
     return df
+
+def RandomUnderSampling(df):
+    #sizes = []
+    #for i in len(categoriesCounts):
+    #    size =  (categoriesCounts[i] * DesiredSize)/len(df)
+    #    sizes.append(size)
+    size0 = 80315
+    size1 = 1956
+    size2 = 5647
+    size3 = 10293
+    size4 = 5647
+    size5 = 5499
+    size6 = 5796
+    size7 = 7935
+    size8 = 11
+    size9 = 36
+    size10 = 5647
+    size11 = 5897
+    size12 = 1507
+    size13 = 21
+    size14 = 652
+    allSizes = size0 + size1 + size2+ size3+ size4+ size5+ size6+ size7+ size8+ size9+ size10+ size11+ size12+ size13+ size14
+    print(allSizes)
+    ##allSizes =  size1 + size3+ size5+ size6+ size7+ size8+ size9+ size11+ size12+ size13+ size14
+
+    strategy = {0:size0, 1:size1, 2:size2, 3:size3, 4:size4, 5:size5, 6:size6, 7:size7, 8:size8, 9:size9, 10:size10, 11:size11, 12:size12, 13:size13, 14:size14}
+    ros = RandomUnderSampler( sampling_strategy=strategy, random_state=7)
+    X_under, y_under = ros.fit_resample(df, df['label'])
+    
+    X_under.reset_index(drop=True, inplace=True)    
+    y_under.reset_index(drop=True, inplace=True)    
+    
+    #df2 = pd.concat([X_under,y_under],axis=1)
+    return X_under 
 

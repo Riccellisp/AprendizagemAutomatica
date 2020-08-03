@@ -12,7 +12,7 @@ import knn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import AdaBoostClassifier
-
+from sklearn.neighbors import KNeighborsClassifier
 
 def gridsearchAdaline(parametros,trainDivided,validation):
     f1Metric = []
@@ -33,6 +33,19 @@ def gridsearchKnn(parametros,trainDivided,validation):
     for params in ParameterGrid(parametros):        
         yTeste, yPred =  knn.knn_predict(trainDivided,validation,params)
         f1 = metrics.f1_score(yTeste, yPred,average='weighted')
+        print(f1)
+        f1Metric.append(f1)
+        par.append(params)
+    return par[f1Metric.index(max(f1Metric))]
+
+def gridsearchKNN2(parametros,xTrain,yTrain,Xval,yVal):
+    f1Metric = []
+    par = []
+    for params in ParameterGrid(parametros):
+        knn = KNeighborsClassifier(n_neighbors=params['n_neighbors'], metric=params['metric'])
+        knn.fit(xTrain,yTrain)
+        pred = knn.predict(Xval)
+        f1 = metrics.f1_score(yVal, pred,average='weighted')
         print(f1)
         f1Metric.append(f1)
         par.append(params)

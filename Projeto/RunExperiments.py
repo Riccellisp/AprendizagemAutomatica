@@ -12,7 +12,6 @@ import PreProcessingFinal
 import ClusterCentroids
 import gridSearchAlgorithms
 import adaline
-import knn
 import bayes
 import nearest_centroid
 import os.path
@@ -27,10 +26,12 @@ import timeit
 from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 
 caminhoSalvar = './CIC2017PreProc/'
-nome = 'CIC2017PreProcBinaryTiny'
+nome = 'CIC2017PreProcBinaryReduced'
 extensao = '.csv'
 path = caminhoSalvar +nome + extensao
 print(path)
@@ -39,27 +40,24 @@ if not os.path.isfile(caminhoSalvar+nome+extensao):
     low_memoryBoolean = False
     df = PreProcessingFinal.leituraConcat(caminho,low_memoryBoolean)
     df = PreProcessingFinal.removeInfinityNa(df)
-    df = PreProcessingFinal.removeInfinityNa(df)
-    categorias = common.mostrarQuantitativoCategorias(df,"label")
+    #df = PreProcessingFinal.removeInfinityNa(df)
     df = PreProcessingFinal.converterNumericalEnconding(df,"label")
+    categorias = common.mostrarQuantitativoCategorias(df,"label")    
+    df = PreProcessingFinal.RandomUnderSampling(df)
     df = PreProcessingFinal.binarizarLabel(df)
     df = PreProcessingFinal.hashingFeatureEncoding(df,"destination_port",20)
     PreProcessingFinal.salvarDataset(df,caminhoSalvar,nome,extensao)
     
 else:
     df = pd.read_csv(caminhoSalvar+nome+extensao,low_memory=False)
-    min_max_scaler = preprocessing.MinMaxScaler()
-    np_scaled = min_max_scaler.fit_transform(df)
+    #min_max_scaler = preprocessing.MinMaxScaler()
+    #np_scaled = min_max_scaler.fit_transform(df)
     colunas = df.columns
-    df = pd.DataFrame(np_scaled, columns = colunas)
-    #df = df.sample(frac = 0.2)
     X = np.array(df.iloc[:,0:97])
     Y = np.array(df.iloc[:,-1])
-    #del df
     skf = StratifiedKFold(n_splits=10)
-    #skf.get_n_splits(X, Y)
     print(skf) 
-    val_perc = 0.2
+    val_perc = 0.1
     indexesPerFold = []
     accMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": [], "RF": [], "SVM": [], "ADA": []}
     precisionMetrics = {"ADALINE":[], "KNN":[], "BAYES": [], "NC": [], "RF": [], "SVM": [], "ADA": []}
@@ -72,6 +70,10 @@ else:
         X_train, X_test = X[train_index,:], X[test_index,:]
         y_train, y_test = Y[train_index], Y[test_index]
         
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
+        
         X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
         X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
@@ -81,7 +83,7 @@ else:
         
         TrainDivided = pd.DataFrame(np.column_stack((X_trainDivided,y_trainDivided)), columns = colunas)
         validation = pd.DataFrame(np.column_stack((X_val,y_val)), columns = colunas)
-        
+      
         # ADALINE GridSearch
         parametros = {'epochs':[30, 40, 50],'alpha':[0.001, 0.01, 0.1]}
         resultGrid = gridSearchAlgorithms.gridsearchAdaline(parametros, TrainDivided, validation)        
@@ -91,7 +93,7 @@ else:
         pesos_adaline = adaline.adaline_fit(train,attrs,resultGrid['epochs'],resultGrid['alpha'])
         yTeste, yPred =  adaline.adaline_predict(pesos_adaline,test)
         end = timeit.default_timer()
-        print(end - start)
+        print("Teempo adalinee",end - start)
         
         # Salvando metricas
         accMetrics["ADALINE"].append(metrics.accuracy_score(yTeste, yPred))
@@ -99,15 +101,14 @@ else:
         recallMetrics["ADALINE"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["ADALINE"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
         timeMetrics["ADALINE"].append(end-start)
-        
-        
+        '''
         # NEAREST CENTROID
         attrs = train.columns.tolist()[:-1]
         start = timeit.default_timer()
         centroids, classes = nearest_centroid.nearest_centroid_fit(train, test)
         yTeste, yPred =  nearest_centroid.nearest_centroid_predict(centroids, classes,test)
         end = timeit.default_timer()
-        print(end - start)
+        print("Teempo NC",end - start)
         
         accMetrics["NC"].append(metrics.accuracy_score(yTeste, yPred))
         precisionMetrics["NC"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
@@ -116,6 +117,24 @@ else:
         timeMetrics["NC"].append(end-start)
         
         # KNN
+        parametros = {'n_neighbors':[3, 5, 7],'metric':['minkowski', 'manhattan']}
+        resultGrid = gridSearchAlgorithms.gridsearchKNN2(parametros, X_trainDivided,y_trainDivided,X_val, y_val)
+        knn = KNeighborsClassifier(n_neighbors=resultGrid['n_neighbors'], metric=resultGrid['metric'])
+        start = timeit.default_timer()
+        knn.fit(X_train, y_train)
+        yPred = knn.predict(X_test)
+        end = timeit.default_timer()
+        print("Teempo KNN",end - start)
+       
+        accMetrics["KNN"].append(metrics.accuracy_score(y_test, yPred))
+        precisionMetrics["KNN"].append(metrics.precision_score(y_test, yPred, average='weighted'))
+        recallMetrics["KNN"].append(metrics.recall_score(y_test, yPred, average='weighted'))
+        f1Metrics["KNN"].append(metrics.f1_score(y_test, yPred, average='weighted'))
+        timeMetrics["KNN"].append(end-start)
+        '''
+        
+        '''
+        # KNN
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
         parametros = {'k':[3, 5, 7],'distance':['euclidean','manhatthan']}
         resultGrid = gridSearchAlgorithms.gridsearchKnn(parametros, TrainDivided, validation)
@@ -123,15 +142,15 @@ else:
         start = timeit.default_timer()
         yTeste, yPred = knn.knn_predict(train, test, resultGrid)
         end = timeit.default_timer()
-        print(end - start)
+        print("Teempo KNN",end - start)
         
         accMetrics["KNN"].append(metrics.accuracy_score(yTeste, yPred))
         precisionMetrics["KNN"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
         recallMetrics["KNN"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["KNN"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
         timeMetrics["KNN"].append(end-start)
-        
-        
+        '''
+        '''
         # NAIVE BAYES
         # TODO: IMPLEMENTAR GRIDSEARCH (?)
         ids_classes = pd.unique(train['label']).tolist()
@@ -140,12 +159,26 @@ else:
         p, pp = bayes.naive_bayes_fit(train, ids_classes, attrs)
         yTeste, yPred = bayes.naive_bayes_predict(test, ids_classes, p, pp)
         end = timeit.default_timer()
-        print(end - start)
+        print("Teempo NB",end - start)
         
         accMetrics["BAYES"].append(metrics.accuracy_score(yTeste, yPred))
         precisionMetrics["BAYES"].append(metrics.precision_score(yTeste, yPred, average='weighted'))
         recallMetrics["BAYES"].append(metrics.recall_score(yTeste, yPred, average='weighted'))
         f1Metrics["BAYES"].append(metrics.f1_score(yTeste, yPred, average='weighted'))
+        timeMetrics["BAYES"].append(end-start)
+        
+
+        # BAYES
+        start = timeit.default_timer()
+        model = GaussianNB().fit(X_train, y_train)
+        yPred = model.predict(X_test)
+        end = timeit.default_timer()
+        print("Teempo BAYES",end - start)
+       
+        accMetrics["BAYES"].append(metrics.accuracy_score(y_test, yPred))
+        precisionMetrics["BAYES"].append(metrics.precision_score(y_test, yPred, average='weighted'))
+        recallMetrics["BAYES"].append(metrics.recall_score(y_test, yPred, average='weighted'))
+        f1Metrics["BAYES"].append(metrics.f1_score(y_test, yPred, average='weighted'))
         timeMetrics["BAYES"].append(end-start)
         
         # RANDOM FOREST
@@ -156,7 +189,7 @@ else:
         rf.fit(X_train, y_train)
         yPred = rf.predict(X_test)
         end = timeit.default_timer()
-        print(end - start)
+        print("Teempo RF",end - start)
        
         accMetrics["RF"].append(metrics.accuracy_score(y_test, yPred))
         precisionMetrics["RF"].append(metrics.precision_score(y_test, yPred, average='weighted'))
@@ -172,7 +205,7 @@ else:
         clf.fit(X_train,y_train)
         yPred = clf.predict(X_test)
         end = timeit.default_timer()
-        print(end - start)
+        print("Teempo ADaboost",end - start)
         
         accMetrics["ADA"].append(metrics.accuracy_score(y_test, yPred))
         precisionMetrics["ADA"].append(metrics.precision_score(y_test, yPred, average='weighted'))
@@ -194,7 +227,8 @@ else:
         recallMetrics["SVM"].append(metrics.recall_score(y_test, y_pred, average='weighted'))
         f1Metrics["SVM"].append(metrics.f1_score(y_test, y_pred, average='weighted'))
         timeMetrics["SVM"].append(end-start)
-        
+        print("Teempo SVM",end - start)
+        '''
         print(fold)
         fold = fold + 1
         
@@ -208,5 +242,9 @@ else:
 
     print(results)
     
-        
-        
+# Criando planilha de resultados
+nomeExcel = 'ResultsCIC2017BinaryReducedadaboost.xlsx'
+excel = pd.ExcelWriter(nomeExcel, engine='xlsxwriter')        
+Dados = pd.DataFrame(results)
+Dados.to_excel(excel, sheet_name='Planilha de Dados')
+excel.save()   

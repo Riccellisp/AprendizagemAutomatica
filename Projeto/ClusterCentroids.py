@@ -25,7 +25,7 @@ def CCMUT(X,f):
     return X_f
 
 def ClusterCentroidsUndersampling(Xtrain,Ytrain,colunas):
-    colunasx = list(colunas[0:97])
+    colunasx = list(colunas[0:len(colunas)-1])
     colunasy = 'label'
     Xtrain = pd.DataFrame(Xtrain,columns=colunasx)
     Ytrain = pd.DataFrame(Ytrain,columns=[colunasy])
@@ -39,7 +39,7 @@ def ClusterCentroidsUndersampling(Xtrain,Ytrain,colunas):
     #X =df0.iloc[:,0:65] 
     df0Under= pd.DataFrame(CCMUT(df0,f0))
     clusterCentroidDatasetUnder = np.vstack((df0Under,df1))
-    return clusterCentroidDatasetUnder[:,0:97], clusterCentroidDatasetUnder[:,-1]
+    return clusterCentroidDatasetUnder[:,0:len(colunas)-1], clusterCentroidDatasetUnder[:,-1]
 
 def salvarDataset(df,caminho,nome):
     df.to_csv (caminho+nome+'.csv', index = None, header=True)
