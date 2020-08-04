@@ -5,8 +5,6 @@ Created on Mon Jul 20 14:42:24 2020
 
 @author: riccelli
 """
-
-
 import common
 import PreProcessingFinal
 import ClusterCentroids
@@ -50,12 +48,11 @@ if not os.path.isfile(caminhoSalvar+nome+extensao):
     
 else:
     df = pd.read_csv(caminhoSalvar+nome+extensao,low_memory=False)
-    #min_max_scaler = preprocessing.MinMaxScaler()
-    #np_scaled = min_max_scaler.fit_transform(df)
     colunas = df.columns
     X = np.array(df.iloc[:,0:97])
     Y = np.array(df.iloc[:,-1])
     skf = StratifiedKFold(n_splits=10)
+    
     print(skf) 
     val_perc = 0.1
     indexesPerFold = []
@@ -74,6 +71,7 @@ else:
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
         
+         
         X_train, y_train = ClusterCentroids.ClusterCentroidsUndersampling(X_train, y_train,colunas)
     
         X_trainDivided, X_val, y_trainDivided, y_val = train_test_split(X_train, y_train, test_size = val_perc,stratify=y_train)
